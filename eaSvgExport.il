@@ -16,21 +16,581 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 procedure( textsvg(text)
     let((pat string)
-        pat=pcreCompile("<")
-        string=pcreReplace(pat text "\\&lt;" 0)
+        pat=pcreCompile("&")
+        string=pcreReplace(pat text "\\&amp;" 0)
+        
+	pat=pcreCompile("<")
+        string=pcreReplace(pat string "\\&lt;" 0)
         pat=pcreCompile(">")
         string=pcreReplace(pat string "\\&gt;" 0)
-    )
+    ); let
+);textsvg
+
+procedure( getInstParameter( inst )
+    let((cdf ParamName ParamText)
+        paramList=list()
+        cdf= cdfGetInstCDF(inst)
+	;println(getd(inst "cellName"))
+	if( cdf~>paramLabelSet then
+	    ;println(cdf~>paramLabelSet)
+	    foreach( ParamName parseString(cdf~>paramLabelSet)
+	        if( get(inst ParamName) then
+		    if(  get(inst ParamName) != "" then
+		        sprintf( ParamText "%s=%s" ParamName get(inst ParamName)) 
+		        paramList = append1( paramList ParamText)
+		    else
+		        paramList = append1( paramList "" )
+		    )
+		)
+	    )
+	)
+	;println(paramList)
+	paramList
+    ); let
 )
 
+
+procedure( TextParsing( shape transform shpcolor theLabel)
+    let( (dominant_baseline text_anchor point0 x0 y0 fs instOrient svgtrans MultiLine)
+	case( shp~>justify
+	    ("upperLeft"
+		dominant_baseline = "hanging"
+		text_anchor       = "start"
+	    )
+	    ("upperCenter"
+		dominant_baseline = "hanging"
+		text_anchor       = "middle"
+	    )
+	    ("upperRight"
+		dominant_baseline = "hanging"
+		text_anchor       = "end"
+	    )
+	    ("centerLeft"
+		dominant_baseline = "central"
+		text_anchor       = "start"
+	    )
+	    ("centerCenter"
+	        dominant_baseline = "central"
+		text_anchor       = "middle"
+	    )
+	    ("centerRight"
+	        dominant_baseline = "central"
+		text_anchor       = "end"
+	    )
+	    ("lowerLeft"
+	        dominant_baseline = ""
+		text_anchor       = "start"
+	    )
+	    ("lowerCenter"
+	        dominant_baseline = ""
+		text_anchor       = "middle"
+	    )
+	    ("lowerRight"
+	        dominant_baseline = ""
+		text_anchor       = "end"
+	    )
+	    (t
+	        printf( "Unknow text justify %s\n" shp~>justify)
+		dominant_baseline = "central"
+		text_anchor       = "middle"
+	    )
+	) ; case_shp~>justify
+	
+	point0 = dbTransformPoint(shp~>xy transform)
+	x0 = nth(0 point0)
+	y0 = nth(1 point0)
+	fs = shp~>height*400
+        instOrient = nth(1 transform)
+	
+	when(t fprintf(of "<!-- %L -->\n" list( "shp~>orient" shp~>orient "instOrient" instOrient )))
+	        
+	svgtrans = case(shp~>orient 
+	    ("R0"
+                case(instOrient
+		    ("R0"
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("R90"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			    ( t
+			    )
+			) ;case_text_anchor
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("R180"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			    ( t
+			    )
+			) ;case_text_anchor
+			sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("R270"
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("MX"
+		        ""
+		    )
+		    ("MXR90"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			    ( t
+			    )
+			) ;case_text_anchor
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("MY"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			    ( t
+			    )
+			) ;case_text_anchor
+			case( dominant_baseline  
+			    (""  
+			        dominant_baseline = "hanging"
+			    )
+			    ("hanging"
+			        dominant_baseline = ""
+			    )
+			) ; case_dominant_baseline
+			sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("MYR90"
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    (t
+		        printf( "R0 Unknow instance orient %s\n" instOrient)
+			""
+		    )
+		) ; case_instOrient
+	    ) ;R0
+	    ("R90" 
+	        case(instOrient
+		    ("R0"
+			sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("R180"
+			sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("R270"
+			case( dominant_baseline  
+			    (""  
+			        dominant_baseline = "hanging"
+			    )
+			    ("hanging"
+			        dominant_baseline = ""
+			    )
+			) ; case_dominant_baseline
+			sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("MX"
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("MXR90"
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("MY"
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("MYR90"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    (t
+		        printf( "R90 Unknow instance orient %s\n" instOrient)
+			""
+		    )
+		) ; case_instOrient
+	    ) ;R90
+	    ("R180" 
+	        case(instOrient
+		    ("R0"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+			sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("R90"
+			sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("R180"
+			sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("R270"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+			sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("MX"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+			case( dominant_baseline  
+			    (""  
+			        dominant_baseline = "hanging"
+			    )
+			    ("hanging"
+			        dominant_baseline = ""
+			    )
+			) ; case_dominant_baseline
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("MXR90"
+			sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("MY"
+			sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("MYR90"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    (t
+		        printf("R180 Unknow instance orient %s \n" instOrient)
+			""
+		    )
+		) ; case_instOrient
+	    ) ;R180
+	    ("R270" 
+	        case(instOrient
+		    ("R0"
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("R90"
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("R180"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("R270"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("MX"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+			case( dominant_baseline  
+			    (""  
+			        dominant_baseline = "hanging"
+			    )
+			    ("hanging"
+			        dominant_baseline = ""
+			    )
+			) ; case_dominant_baseline
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("MXR90"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("MY"
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("MYR90"
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    (t
+		        printf("R270 Unknow instance orient %s\n" instOrient)
+			""
+		    )
+		) ; case_instOrient
+	    ) ;R270
+	    ("MX"
+	        case(instOrient
+		    ("R0"
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("R90"
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("R180"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("R270"
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("MX"
+			case( dominant_baseline  
+			    (""  
+			        dominant_baseline = "hanging"
+			    )
+			    ("hanging"
+			        dominant_baseline = ""
+			    )
+			) ; case_dominant_baseline
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("MXR90"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("MY"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("MYR90"
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    (t
+		        printf("MX Unknow instance orient %s\n" instOrient)
+			""
+		    )
+		) ; case_instOrient
+	    ) ;MX
+	    ("MXR90"
+	        case(instOrient
+		    ("R180"
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("MX"
+			case( dominant_baseline  
+			    (""  
+			        dominant_baseline = "hanging"
+			    )
+			    ("hanging"
+			        dominant_baseline = ""
+			    )
+			) ; case_dominant_baseline
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    (t
+		        printf( "MXR90 Unknow instance orient %s\n" instOrient)
+			""
+		    )
+		) ; case_instOrient
+	    ) ;MXR90
+	    ("MY"
+	        case(instOrient
+		    ("R0"
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("R90"
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("R180"
+		        ""
+		    )
+		    ("R270"
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("MX"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("MXR90"
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    ("MY"
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("MYR90"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    (t
+		        printf( "MY Unknow instance orient %s\n" instOrient)
+			""
+		    )
+		) ; case_instOrient
+	    ) ;MY
+	    ("MYR90"
+	        case(instOrient
+		    ("MXR90"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+		        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
+		    )
+		    ("MX"
+		        case( text_anchor 
+			    ("end" 
+			        text_anchor = "start"
+			    )
+			    ("start"
+			        text_anchor = "end"
+			    )
+			) ;case_text_anchor
+		        sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
+		    )
+		    (t
+		        printf( "MYR90 Unknow instance orient %s\n" instOrient)
+			""
+		    )
+		) ; case_instOrient
+	    ) ;MYR90
+	    ( t
+	        printf( "Unknow  orient %s\n" shp~>orient)
+		""
+	    )
+	)
+        MultiLine = parseString(theLabel "\n")
+	if( and(length(MultiLine) > 1, dominant_baseline == "" ) then
+	    y0 = y0 - length(MultiLine)* fs
+	)
+	sprintf(text    "<text x=\"%g\" y=\"%g\" dominant-baseline=\"%s\" text-anchor=\"%s\" style=\"fill:%s; white-space: pre;font-size:%gpx\" %s>%s</text>\n" x0 y0 dominant_baseline text_anchor shpcolor fs svgtrans textsvg(theLabel))
+    ); let
+); TextParsing
+
 procedure( shapesvg(cv transform textOut top inst paramList)
-    let((points wirecolor fillcolor strokecolor lw svgtrans fs (debug nil) (text ""))
+    let((points wirecolor fillcolor strokecolor lw svgtrans fs inst0 (debug nil) (text ""))
         minw=2*0.003125*nth(2 transform)
-        lw=4*minw
-        fs=4.5*4*minw
+        lw=1.25*minw
+        fs=6.5*1*minw
         foreach(shp cv~>shapes 
             wirecolor=if(equal(shp~>layerName "device") "green" "blue")
-            case(shp~>objType
+            shpcolor= case( shp~>layerName
+	        ("device"
+		    "green"
+		)
+		("pin"
+		   "red" 
+		)
+		("wire"
+		   "blue" 
+		)
+		("text"
+		   "Black" 
+		)
+		("instance"
+		   "red" 
+		)
+		("annotate"
+		   "brown" 
+		)
+		("border"
+		    "gray"
+		)
+		( nil
+		    "blue"
+		)
+		( t
+		    printf( "Unknow layerName %s" shp~>layerName)
+		    "blue"
+		)
+	    )
+	    wirecolor = shpcolor
+            ;println(shp~>objType)
+	    case(shp~>objType
                 ("line" 
                     points=dbTransformPointList(shp~>points transform)
                     when(debug fprintf(of "<!-- %L -> %L -->\n" shp~>points points))
@@ -42,7 +602,16 @@ procedure( shapesvg(cv transform textOut top inst paramList)
                     )
                     fprintf(of "\" style=\"fill:none;stroke:%s;stroke-width:%g;stroke-linecap:round\" />\n" wirecolor lw)
                 );line
-                ("polygon"
+                ("path"
+		    points=dbTransformPointList(shp~>points transform)
+		    pnt = car(points)
+		    fprintf(of "<path d=\"M%g,%g " xCoord(pnt) yCoord(pnt))
+		    foreach(pnt points
+                        fprintf(of "L %g,%g" xCoord(pnt) yCoord(pnt))
+                    )
+		    fprintf(of "\" style=\"fill:none;stroke:%s;stroke-width:%g;stroke-linecap:round\" />\n" wirecolor lw*shp~>width/0.00625 )
+		); path
+		("polygon"
                 
                     fillcolor = if(equal(shp~>layerName "annotate")||equal(shp~>layerName "pin") "red" "none")
                     wirecolor = if(equal(shp~>layerName "annotate")||equal(shp~>layerName "pin") "none" wirecolor)
@@ -57,47 +626,99 @@ procedure( shapesvg(cv transform textOut top inst paramList)
                     fprintf(of "Z\" style=\"fill:%s;stroke:%s;stroke-width:%g;stroke-linecap:round\" />\n" fillcolor wirecolor lw)
                 );polygon
                 ("label"
-                    when(and( textOut or(or(or(top equal(shp~>layerName "pin")) equal(shp~>theLabel "cdsName()")) equal(shp~>theLabel "cdsParam(1)")))
-                        if(equal(shp~>theLabel "cdsName()") then
-                           theLabel = inst~>baseName
-                           a=t
-                        else if(equal(shp~>theLabel "cdsParam(1)") then
-                           theLabel = nth(0 paramList)
-                           a=t
-                        else
-                           theLabel = shp~>theLabel
-                           a=nil
+                    if(and( textOut or(
+;		      or(top equal(shp~>layerName "pin")) 
+		      or(top t) 
+		      )) then
+                        
+			theLabel = shp~>theLabel
+			a=t
+			StartIndex = nindex(theLabel, "cdsParam(")
+			;println(theLabel)
+			if( StartIndex then
+			    EndIndex = nindex( substring( theLabel StartIndex), ")")
+			    Index = readstring(substring( theLabel StartIndex+9 EndIndex-10))
+			    if( Index < length(paramList)+1 then
+			        sprintf(TextParam "cdsParam(%d)" Index)
+			        rexCompile(TextParam)
+			        theLabel=rexReplace(theLabel strcat("\"" nth(Index-1 paramList) "\"") 0)
+				
+				theLabel=evalstring(theLabel)
+			    else
+			        a=nil
+			    )
+			); if StartIndex
+			;println(theLabel)
+			if( strncmp( theLabel "[@" 2) == 0 then
+			    EndIndex = nindex( substring( theLabel 3), "]")
+			    theLabel = substring(theLabel 3 EndIndex-1)
+			    theLabel = nth(0 parseString(theLabel ":"))
+			    
+			    case(theLabel
+			        ("instanceName"
+				    theLabel = get(inst "name")
+				    if(theLabel == nil then
+				        theLabel = "[@instanceName]"
+				    )
+				)
+				(t
+				    theLabel = get(inst theLabel)
+				    if( theLabel == nil then
+				        printf( "Undefine Label %s\n" shp~>theLabel)
+					theLabel =""
+					a=nil
+				    ) 
+				)
+			    )
+			); if strncmp( theLabel "[@" 2) == 0
+			
+			if(strncmp( theLabel "ilInst~>" 8) == 0 then
+			    rexCompile("ilInst~>")
+			    theLabel = rexReplace(theLabel "inst~>" 0)
+			    theLabel=evalstring(theLabel)
+			)
+			
+			case(theLabel
+			    ("cdsName()"
+			        theLabel = inst~>name
+			    )
+			    ( t
+			        if( and( nindex(theLabel, "(") (shp~>labelType != "normalLabel")) then
+			          ;shp~>labelType == "ILLabel"
+				  rexCompile("ilInst~>")
+				  theLabel = rexReplace(theLabel "inst~>" 0)
+				  ;println(theLabel)
+				  if(evalstring(theLabel) then
+				      theLabel=evalstring(theLabel)
+				  )
+				  ;println(theLabel)
+			        ;else
+				  ;println(shp~>labelType)
+				)
+			        if( strncmp("cdsTerm(" theLabel 8) == 0 then
+			            a=nil
+			        )
+			    )
+			) ; case_theLabel
+			
+			fprintf(of "<!-- %L -> %L -->\n" shp~>xy points)
+                        when(debug fprintf(of "<!-- %L -> %L -->\n" shp~>points points))
+                        if(a then
+			    fprintf(of "%s" TextParsing( shp transform shpcolor theLabel))
                         )
-                        )
-                        points=dbTransformBBox(shp~>bBox transform)
-                        x = xCoord(lowerLeft(points))
-                            y = yCoord(lowerLeft(points))
-                            x1 = (xCoord(lowerLeft(points))+xCoord(upperRight(points)))/2
-                            y1 = (yCoord(lowerLeft(points))+yCoord(upperRight(points)))/2
-                            w = xCoord(upperRight(points))-x
-                            h = yCoord(upperRight(points))-y
-                            svgtrans=if(shp~>orient == "R90" sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x1 y1) "")
-                            when(debug fprintf(of "<!-- %L -> %L -->\n" shp~>points points))
-                            if(a
-                            sprintf(text "%s <text x=\"%g\" y=\"%g\" alignment-baseline=\"middle\" text-anchor=\"middle\" style=\"fill:red;font-size:%g\" %s>%s</text>\n" text x1 y1  fs svgtrans textsvg(theLabel))
-                        fprintf(of "<text x=\"%g\" y=\"%g\" alignment-baseline=\"middle\" text-anchor=\"middle\" style=\"fill:red;font-size:%g\" %s>%s</text>\n" x1 y1  fs svgtrans textsvg(theLabel))
-                        )
-                    )
+                    else
+		      printf( "Undisplay Label:%s with Layer name:%s\n" shp~>theLabel shp~>layerName)
+		    )
                 );label
                 ("textDisplay"
-                    when(and( textOut equal(shp~>layerName "pin"))
-                            points=dbTransformBBox(shp~>bBox transform)
-                            x = xCoord(lowerLeft(points))
-                            y = yCoord(lowerLeft(points))
-                            x1 = (xCoord(lowerLeft(points))+xCoord(upperRight(points)))/2
-                            y1 = (yCoord(lowerLeft(points))+yCoord(upperRight(points)))/2
-                            w = xCoord(upperRight(points))-x
-                            h = yCoord(upperRight(points))-y
-                            svgtrans=if(shp~>orient == "R90" sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x1 y1) "")
-                            when(debug fprintf(of "<!-- %L -> %L -->\n" shp~>points points))
-                            fprintf(of "<text x=\"%g\" y=\"%g\" alignment-baseline=\"middle\" text-anchor=\"middle\" style=\"fill:red;font-size:%g\"
-                        %s>%s</text>\n" x1 y1  fs svgtrans textsvg(shp~>associate~>name))
-                    )
+                    if( and( textOut equal(shp~>layerName "pin")) then
+                            fprintf(of "%s" TextParsing( shp transform shpcolor shp~>associate~>name))
+                    else
+		      if( shp~>theLabel != nil then 
+		          println(shp~>theLabel)
+		          println(shp~>layerName)
+		      )
+		    )
                 );textDisplay
                 ("rect"
                     points=dbTransformBBox(shp~>bBox transform)
@@ -122,7 +743,17 @@ procedure( shapesvg(cv transform textOut top inst paramList)
                         cy = (yCoord(lowerLeft(points))+yCoord(upperRight(points)))/2
                         rx = (xCoord(upperRight(points))-x)/2
                         ry = (yCoord(upperRight(points))-y)/2
-                        fillcolor = if(equal(shp~>layerName "pin") "red" "none")
+                        fillcolor = case( shp~>layerName 
+			    ("pin" 
+			        "red"
+			    ) 
+			    ("wire" 
+			        "blue"
+			    ) 
+			    (t 
+			        "none"
+			    )
+			)
                         strokecolor = if(equal(shp~>layerName "pin") "none" wirecolor)
                         when(debug fprintf(of "<!-- %L -> %L -->\n" shp~>points points))
                         ;<ellipse cx="300" cy="100" rx="50" ry="40" style="fill:rgb(0,0,255);stroke-width:3;stroke:rgb(0,0,0)" />
@@ -137,18 +768,63 @@ procedure( shapesvg(cv transform textOut top inst paramList)
                         cy = (yCoord(lowerLeft(points))+yCoord(upperRight(points)))/2
                         rx = (xCoord(upperRight(points))-x)/2
                         ry = (yCoord(upperRight(points))-y)/2
-                        apoints = list(list(cx+rx*cos(shp~>startAngle) cy+ry*sin(shp~>startAngle))  list(cx+rx*cos(shp~>stopAngle)
-                        cy+ry*sin(shp~>stopAngle)))
+                        case( nth(1 transform)
+			    ( "R0"
+			        apoints = list(list(cx+rx*cos(shp~>stopAngle) cy+ry*sin(shp~>stopAngle)) list(cx+rx*cos(shp~>startAngle) 
+				cy+ry*sin(shp~>startAngle)) )
+			    )
+			    ( "R90"
+			        apoints = list(list(cx+rx*cos(shp~>stopAngle) cy+ry*sin(shp~>stopAngle)) list(cx+rx*cos(shp~>startAngle) 
+				cy+ry*sin(shp~>startAngle)) )
+			    )
+			    ( "R180"
+			        apoints = list(list(cx+rx*cos(shp~>stopAngle) cy+ry*sin(shp~>stopAngle)) list(cx+rx*cos(shp~>startAngle) 
+				cy+ry*sin(shp~>startAngle)) )
+			    )
+			    ( "R270"
+			        apoints = list(list(cx+rx*cos(shp~>stopAngle) cy+ry*sin(shp~>stopAngle)) list(cx+rx*cos(shp~>startAngle) 
+				cy+ry*sin(shp~>startAngle)) )
+			    )
+			    ( "MX"
+			        apoints = list(list(cx+rx*cos(shp~>startAngle) cy+ry*sin(shp~>startAngle))  list(cx+rx*cos(shp~>stopAngle)
+                                cy+ry*sin(shp~>stopAngle)))
+                            )
+			    ( "MXR90"
+			        apoints = list(list(cx+rx*cos(shp~>startAngle) cy+ry*sin(shp~>startAngle))  list(cx+rx*cos(shp~>stopAngle)
+                                cy+ry*sin(shp~>stopAngle)))
+                            )
+			    ( "MY"
+			        apoints = list(list(cx+rx*cos(shp~>startAngle) cy+ry*sin(shp~>startAngle))  list(cx+rx*cos(shp~>stopAngle)
+                                cy+ry*sin(shp~>stopAngle)))
+                            )
+			    ( "MYR90"
+			        apoints = list(list(cx+rx*cos(shp~>startAngle) cy+ry*sin(shp~>startAngle))  list(cx+rx*cos(shp~>stopAngle)
+                                cy+ry*sin(shp~>stopAngle)))
+                            )
+			    ( t
+			        apoints = list(list(cx+rx*cos(shp~>startAngle) cy+ry*sin(shp~>startAngle))  list(cx+rx*cos(shp~>stopAngle)
+                                cy+ry*sin(shp~>stopAngle)))
+			        printf("Arc Tranfomation Unknow %s\n" nth(1 transform))
+			    )
+                        ) ; case_nth(1 transform)
                         points=dbTransformPointList(apoints transform)
-                        when(t fprintf(of "%L\n" list( cx cy rx ry nth(1 transform))))
-                        when(t fprintf(of "<!-- %L -> %L -->\n" apoints points))
+			when(t fprintf(of "%L\n" list( cx cy rx ry nth(1 transform))))
+                        when(t fprintf(of "<!-- arc %L -> %L -->\n" apoints points))
                         fprintf(of "<path d=\"M%g,%g " xCoord(nth(0 points)) yCoord(nth(0 points)))
                         fprintf(of "A %g,%g 0 0 0 %g,%g" rx*nth(2 transform) ry*nth(2 transform)  xCoord(nth(1 points)) yCoord(nth(1 points)))
                         fprintf(of "\" style=\"fill:%s;stroke:%s;stroke-width:%g;stroke-linecap:round\" />\n" "none" wirecolor lw)
                 ) ;arc
+		( t
+		     printf( "Unknow shape type %s\n" shp~>objType)
+		)
             );case
         );foreach
-        text
+        if( top == nil then
+	    foreach(inst0 cv~>instances
+	        shapesvg(inst0~>master dbConcatTransform(inst0~>transform transform) t nil inst paramList)
+	    ); foreach
+	);if
+	text
     );let
 );proc
 
@@ -174,22 +850,24 @@ let((cv of scale lw fs transform_0 transform_scale transform box transform_cv)
     y = yCoord(lowerLeft(box))
     w = xCoord(upperRight(box))-x
     h = yCoord(upperRight(box))-y
-    println(transform)
+    ;println(transform)
     ;println(y)
-    fprintf(of "<svg width=\"%g\" height=\"%g\">\n" w h)
+    fprintf(of "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"%g\" height=\"%g\">\n" w h)
     shapesvg(cv transform t t nil nil)
     transform_cv=transform
     foreach(inst cv~>instances
-        paramList=list()
-        transform = dbConcatTransform( inst~>transform transform_cv )
-        ;fprintf(of "<g> <!-- %L  -->\n" inst~>cellName)
+        paramList=getInstParameter(inst)
+	transform = dbConcatTransform( inst~>transform transform_cv )
+        fprintf(of "<g> <!-- %L  -->\n" list(inst~>libName inst~>cellName))
         if( nequal(inst~>master~>libName  "basic")
-            text=shapesvg(inst~>master transform t nil inst paramList)
+            ; Print Symbol
+	    text=shapesvg(inst~>master transform t nil inst paramList)
             text=shapesvg(inst~>master transform nil nil inst paramList)
         )
-        ;fprintf(of "</g><!-- %L  -->\n" inst~>cellName)
-        fprintf(of "%s\n" text)
+        fprintf(of "</g><!-- %L  -->\n" inst~>cellName)
+        ;fprintf(of "%s\n" text)
     )
     fprintf(of "</svg>\n")
     close(of)
 )
+
