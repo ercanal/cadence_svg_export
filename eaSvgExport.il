@@ -642,8 +642,11 @@ procedure( shapesvg(cv transform textOut top inst paramList)
 			        sprintf(TextParam "cdsParam(%d)" Index)
 			        rexCompile(TextParam)
 			        theLabel=rexReplace(theLabel strcat("\"" nth(Index-1 paramList) "\"") 0)
-				
-				theLabel=evalstring(theLabel)
+				if( errset(evalstring(theLabel)) then
+					theLabel=evalstring(theLabel)
+				else
+					a=nil
+				)
 			    else
 			        a=nil
 			    )
@@ -675,7 +678,11 @@ procedure( shapesvg(cv transform textOut top inst paramList)
 			if(strncmp( theLabel "ilInst~>" 8) == 0 then
 			    rexCompile("ilInst~>")
 			    theLabel = rexReplace(theLabel "inst~>" 0)
-			    theLabel=evalstring(theLabel)
+			    if( errset(evalstring(theLabel)) then
+				theLabel=evalstring(theLabel)
+			    else
+				a=nil
+			    )
 			)
 			
 			case(theLabel
@@ -688,8 +695,10 @@ procedure( shapesvg(cv transform textOut top inst paramList)
 				  rexCompile("ilInst~>")
 				  theLabel = rexReplace(theLabel "inst~>" 0)
 				  ;println(theLabel)
-				  if(evalstring(theLabel) then
+				  if(errset(evalstring(theLabel)) then
 				      theLabel=evalstring(theLabel)
+			      	  else
+				      a=nil
 				  )
 				  ;println(theLabel)
 			        ;else
