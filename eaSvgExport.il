@@ -30,13 +30,16 @@ procedure( getInstParameter( inst )
     let((cdf ParamName ParamText)
         paramList=list()
         cdf= cdfGetInstCDF(inst)
-        ;println(getd(inst "cellName"))
+        ;println(get(inst "cellName"))
         if( cdf~>paramLabelSet then
             ;println(cdf~>paramLabelSet)
             foreach( ParamName parseString(cdf~>paramLabelSet)
                 if( get(inst ParamName) then
                     if(  get(inst ParamName) != "" then
-                        sprintf( ParamText "%s=%s" ParamName get(inst ParamName)) 
+                          if(stringp(get(inst ParamName)) 
+                              sprintf( ParamText "%s=%s" ParamName get(inst ParamName)) 
+                              sprintf( ParamText "%s=%L" ParamName get(inst ParamName)) 
+                          )
                         paramList = append1( paramList ParamText)
                     else
                         paramList = append1( paramList "" )
@@ -469,7 +472,7 @@ procedure( TextParsing( shape transform shapecolor theLabel)
                         sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
                     )
                     ("R180"
-                        ""
+                        sprintf(nil "transform=\"rotate(0,%g,%g)\"" x0 y0)
                     )
                     ("R270"
                         sprintf(nil "transform=\"rotate(-90,%g,%g)\"" x0 y0)
@@ -630,13 +633,13 @@ procedure( shapesvg(cv transform textOut top inst paramList paramOut )
 ;                      or(top equal(shp~>layerName "pin")) 
                       or(top t) 
                       )) then
-                        x= "UNKNOWN"
+                                    
                         theLabel = shp~>theLabel
                         a=t
                         StartIndex = nindex(theLabel, "cdsParam(")
                         ;println(theLabel)
                         if( StartIndex then
-                            x="cdsParam"
+                                        
                             if( paramOut then
                                 EndIndex = nindex( substring( theLabel StartIndex), ")")
                                 Index = readstring(substring( theLabel StartIndex+9 EndIndex-10))
@@ -658,7 +661,7 @@ procedure( shapesvg(cv transform textOut top inst paramList paramOut )
                         ); if StartIndex
                         ;println(theLabel)
                         when( strncmp( theLabel "[@" 2) == 0 
-                            x="[@"
+                                  
                             EndIndex = nindex( substring( theLabel 3), "]")
                             theLabel = substring(theLabel 3 EndIndex-1)
                             theLabel = nth(0 parseString(theLabel ":"))
@@ -688,7 +691,7 @@ procedure( shapesvg(cv transform textOut top inst paramList paramOut )
                             )
                         ); if strncmp( theLabel "[@" 2) == 0
                         when(strncmp( theLabel "ilInst~>" 8) == 0 
-                            x="ilInst~>" 
+                                         
                             rexCompile("ilInst~>")
                             theLabel = rexReplace(theLabel "inst~>" 0)
                             if( errset(evalstring(theLabel)) then
@@ -700,7 +703,7 @@ procedure( shapesvg(cv transform textOut top inst paramList paramOut )
                         
                         case(theLabel
                             ("cdsName()"
-                                x= "cdsName()"
+                                              
                                 theLabel = inst~>name
                             )
                             ( t
@@ -726,7 +729,7 @@ procedure( shapesvg(cv transform textOut top inst paramList paramOut )
                             )
                         ) ; case_theLabel
                         
-                        fprintf(of "<!-- %L -> %L  -> %L -->\n" shp~>xy points x)
+                        fprintf(of "<!-- %L -> %L  -->\n" shp~>xy points )
                         when(debug fprintf(of "<!-- %L -> %L -->\n" shp~>points points))
                         if(a then
                             fprintf(of "%s" TextParsing( shp transform shpcolor theLabel))
@@ -874,8 +877,8 @@ let((of scale lw fs transform_0 transform_scale transform box transform_cv)
     y = yCoord(lowerLeft(box))
     w = xCoord(upperRight(box))-x
     h = yCoord(upperRight(box))-y
-    println(filename)
-    println(paramOut)
+    ;println(filename)
+    ;println(paramOut)
     ;println(y)
     fprintf(of "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"%g\" height=\"%g\">\n" w h)
     shapesvg(cv transform t t nil nil paramOut )
